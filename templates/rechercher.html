@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+
+{% block title %}Rechercher - Gestion de Stock{% endblock %}
+
+{% block content %}
+<h1 class="mb-4"><i class="bi bi-search"></i> Résultats de Recherche</h1>
+
+<!-- Barre de recherche -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form action="{{ url_for('rechercher') }}" method="get" class="row g-3">
+            <div class="col-md-10">
+                <input type="text" name="q" class="form-control" placeholder="Rechercher un produit..." value="{{ query }}" required>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-search"></i> Rechercher
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if query %}
+<div class="card">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">Résultats pour "{{ query }}" ({{ produits|length }} produit(s) trouvé(s))</h5>
+    </div>
+    <div class="card-body">
+        {% if produits %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nom</th>
+                        <th>Description</th>
+                        <th>Catégorie</th>
+                        <th>Quantité</th>
+                        <th>Prix Achat</th>
+                        <th>Valeur Totale</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for produit in produits %}
+                    <tr class="{% if produit['quantite'] < 10 %}low-stock{% endif %}">
+                        <td>{{ produit['id'] }}</td>
+                        <td><strong>{{ produit['nom'] }}</strong></td>
+                        <td>{{ produit['description'] or '-' }}</td>
+                        <td>
+                            {% if produit['categorie'] %}
+                            <span class="badge bg-info">{{ produit['categorie'] }}</span>
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if produit['quantite'] < 10 %}
+                            <span class="badge bg-warning text-dark">{{ produit['quantite'] }}</span>
+                            {% else %}
+                            {{ produit['quantite'] }}
+                            {% endif %}
+                        </td>
+                        <td>{{ "%.f"|format(produit['prix_achat']) }} FCFA</td>
+                        <td>{{ "%.f"|format(produit['quantite'] * produit['prix_achat']) }} FCFA</td>
+                        <td>
+                            <a href="{{ url_for('modifier', id=produit['id']) }}" class="btn btn-sm btn-warning">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <form method="post" action="{{ url_for('supprimer', id=produit['id']) }}" style="display: inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce produit?');">
+                                <button type="submit" class="btn btn-sm btn-danger">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-warning text-center">
+            <i class="bi bi-exclamation-triangle"></i> Aucun produit trouvé pour "{{ query }}"
+        </div>
+        {% endif %}
+        
+        <div class="text-center mt-3">
+            <a href="{{ url_for('index') }}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Retour à la liste complète
+            </a>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

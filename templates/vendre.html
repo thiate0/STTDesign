@@ -1,0 +1,195 @@
+{% extends 'base.html' %}
+
+{% block title %}Enregistrer une Vente - Gestion de Stock{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="bi bi-cart-plus"></i> Enregistrer une Vente</h5>
+            </div>
+            <div class="card-body">
+                {% if produits %}
+                <form method="post" id="venteForm">
+                    <div class="mb-3">
+                        <label for="produit_id" class="form-label">Sélectionner un Produit *</label>
+                        <select class="form-control" id="produit_id" name="produit_id" required
+                            onchange="updateProduitInfo()">
+                            <option value="">Choisir un produit...</option>
+                            {% for produit in produits %}
+                            <option value="{{ produit['id'] }}" data-stock="{{ produit['quantite'] }}"
+                                data-prix-achat="{{ produit['prix_achat'] }}" data-nom="{{ produit['nom'] }}">
+                                {{ produit['nom'] }} - Stock: {{ produit['quantite'] }} - Coût: {{
+                                "%.f"|format(produit['prix_achat']) }} FCFA
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Informations du produit sélectionné -->
+                    <div id="produitInfo" class="alert alert-info" style="display: none;">
+                        <h6><i class="bi bi-info-circle"></i> Informations du Produit</h6>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <strong>Nom:</strong> <span id="info-nom">-</span>
+                            </div>
+                            <div class="col-md-4">
+                                <strong>Stock:</strong> <span id="info-stock" class="badge bg-primary">0</span>
+                            </div>
+                            <div class="col-md-4">
+                                <strong>Prix Achat:</strong> <span id="info-prix-achat">0</span> FCFA
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="quantite" class="form-label">Quantité à Vendre *</label>
+                            <input type="number" class="form-control" id="quantite" name="quantite" min="1" max="1"
+                                required oninput="calculateTotal()">
+                            <small class="form-text text-muted">Maximum: <span id="max-stock">0</span> unités</small>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label for="prix_vente" class="form-label">Prix de Vente Unitaire (FCFA) *</label>
+                            <input type="number" step="0.01" class="form-control" id="prix_vente" name="prix_vente"
+                                min="0" required oninput="calculateTotal()">
+                            <small class="form-text text-muted">Prix auquel vous vendez le produit</small>
+                        </div>
+                    </div>
+
+                    <!-- Calcul du montant total -->
+                    <div class="alert alert-success">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6><i class="bi bi-cash-coin"></i> Montant Total de la Vente</h6>
+                                <h2 class="mb-0"><span id="montant-total">0</span> FCFA</h2>
+                            </div>
+                            <div class="col-md-6">
+                                <h6><i class="bi bi-graph-up-arrow"></i> Bénéfice</h6>
+                                <h2 class="mb-0 text-success"><span id="benefice">0</span> FCFA</h2>
+                                <small class="text-muted">Marge: <span id="marge">0</span>%</small>
+                            </div>
+                        </div>
+                        <hr>
+                        <small class="text-muted">Stock restant: <span id="stock-restant">0</span> unités</small>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-success btn-lg">
+                            <i class="bi bi-check-circle"></i> Confirmer la Vente
+                        </button>
+                        <a href="{{ url_for('mouvements') }}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> Retour aux Mouvements
+                        </a>
+                    </div>
+                </form>
+                {% else %}
+                <div class="alert alert-warning text-center">
+                    <i class="bi bi-exclamation-triangle"></i> Aucun produit disponible en stock.
+                    <br><br>
+                    <a href="{{ url_for('ajouter') }}" class="btn btn-primary">
+                        <i class="bi bi-plus-circle"></i> Ajouter un Produit
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Conseils -->
+        <div class="alert alert-light mt-3">
+            <h6><i class="bi bi-lightbulb"></i> Conseils:</h6>
+            <ul class="mb-0">
+                <li>Sélectionnez d'abord le produit à vendre</li>
+                <li>Le montant est calculé automatiquement</li>
+                <li>Le stock sera mis à jour automatiquement après la vente</li>
+                <li>Consultez l'historique dans l'onglet "Mouvements"</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<script>
+    function updateProduitInfo() {
+        const select = document.getElementById('produit_id');
+        const option = select.options[select.selectedIndex];
+
+        if (option.value) {
+            const stock = option.dataset.stock;
+            const prixAchat = option.dataset.prixAchat;
+            const nom = option.dataset.nom;
+
+            // Afficher les infos
+            document.getElementById('produitInfo').style.display = 'block';
+            document.getElementById('info-nom').textContent = nom;
+            document.getElementById('info-stock').textContent = stock;
+            document.getElementById('info-prix-achat').textContent = parseFloat(prixAchat).toFixed(2);
+
+            // Mettre à jour le max
+            document.getElementById('quantite').max = stock;
+            document.getElementById('max-stock').textContent = stock;
+
+            // Réinitialiser les champs
+            document.getElementById('quantite').value = '';
+            document.getElementById('prix_vente').value = '';
+            calculateTotal();
+        } else {
+            document.getElementById('produitInfo').style.display = 'none';
+            document.getElementById('quantite').value = '';
+            document.getElementById('prix_vente').value = '';
+            document.getElementById('quantite').max = 1;
+            calculateTotal();
+        }
+    }
+
+    function calculateTotal() {
+        const select = document.getElementById('produit_id');
+        const option = select.options[select.selectedIndex];
+        const quantite = parseInt(document.getElementById('quantite').value) || 0;
+        const prixVente = parseFloat(document.getElementById('prix_vente').value) || 0;
+
+        if (option.value && quantite > 0 && prixVente > 0) {
+            const prixAchat = parseFloat(option.dataset.prixAchat);
+            const stock = parseInt(option.dataset.stock);
+
+            // Calculs
+            const montantTotal = quantite * prixVente;
+            const coutAchat = quantite * prixAchat;
+            const benefice = montantTotal - coutAchat;
+            const marge = ((benefice / montantTotal) * 100).toFixed(1);
+            const stockRestant = stock - quantite;
+
+            // Affichage
+            document.getElementById('montant-total').textContent = montantTotal.toFixed(2);
+            document.getElementById('benefice').textContent = benefice.toFixed(2);
+            document.getElementById('marge').textContent = marge;
+            document.getElementById('stock-restant').textContent = stockRestant;
+
+            // Couleurs conditionnelles
+            const beneficeElement = document.getElementById('benefice').parentElement;
+            if (benefice < 0) {
+                beneficeElement.classList.remove('text-success');
+                beneficeElement.classList.add('text-danger');
+            } else {
+                beneficeElement.classList.remove('text-danger');
+                beneficeElement.classList.add('text-success');
+            }
+
+            // Changer la couleur si stock faible
+            const stockRestantSpan = document.getElementById('stock-restant');
+            if (stockRestant < 10) {
+                stockRestantSpan.className = 'badge bg-warning text-dark';
+            } else {
+                stockRestantSpan.className = '';
+            }
+        } else {
+            document.getElementById('montant-total').textContent = '0.00';
+            document.getElementById('benefice').textContent = '0.00';
+            document.getElementById('marge').textContent = '0';
+            document.getElementById('stock-restant').textContent = '0';
+        }
+    }
+</script>
+
+{% endblock %}

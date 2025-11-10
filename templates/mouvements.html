@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+
+{% block title %}Mouvements de Stock - Gestion de Stock{% endblock %}
+
+{% block content %}
+<h1 class="mb-4"><i class="bi bi-arrow-left-right"></i> Historique des Mouvements</h1>
+
+<!-- Statistiques des ventes -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card stat-card">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-receipt"></i> Total Mouvements</h5>
+                <h2>{{ stats['total_mouvements'] or 0 }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card-2">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-cash-coin"></i> Total Ventes</h5>
+                <h2>{{ "%.f"|format(stats['total_ventes'] or 0) }} FCFA</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card-3">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-box-seam"></i> Unités Vendues</h5>
+                <h2>{{ stats['total_quantite_vendue'] or 0 }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white;">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-graph-up-arrow"></i> Bénéfices</h5>
+                <h2>{{ "%.f"|format(stats['total_benefices'] or 0) }} FCFA</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bouton pour enregistrer une vente -->
+<div class="mb-4">
+    <a href="{{ url_for('vendre') }}" class="btn btn-success btn-lg">
+        <i class="bi bi-cart-plus"></i> Enregistrer une Vente
+    </a>
+</div>
+
+<!-- Tableau des mouvements -->
+<div class="card">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0"><i class="bi bi-list-ul"></i> Historique Complet des Mouvements</h5>
+    </div>
+    <div class="card-body">
+        {% if mouvements %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Type</th>
+                        <th>Produit</th>
+                        <th>Catégorie</th>
+                        <th>Quantité</th>
+                        <th>Prix Achat</th>
+                        <th>Prix Vente</th>
+                        <th>Montant Total</th>
+                        <th>Bénéfice</th>
+                        <th>Stock Avant</th>
+                        <th>Stock Restant</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for mouvement in mouvements %}
+                    <tr>
+                        <td>{{ mouvement['date_mouvement'].strftime('%Y-%m-%d %H:%M') if mouvement['date_mouvement'] else '-' }}</td>
+                        <td>
+                            {% if mouvement['type_mouvement'] == 'vente' %}
+                            <span class="badge bg-success">
+                                <i class="bi bi-cart-check"></i> Vente
+                            </span>
+                            {% else %}
+                            <span class="badge bg-info">
+                                <i class="bi bi-box-arrow-in-down"></i> {{ mouvement['type_mouvement'] }}
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td><strong>{{ mouvement['produit_nom'] }}</strong></td>
+                        <td>
+                            {% if mouvement['categorie'] %}
+                            <span class="badge bg-secondary">{{ mouvement['categorie'] }}</span>
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge bg-warning text-dark">{{ mouvement['quantite'] }}</span>
+                        </td>
+                        <td>{{ "%.f"|format(mouvement['prix_achat']) }} F</td>
+                        <td><strong class="text-success">{{ "%.f"|format(mouvement['prix_vente']) }} F</strong></td>
+                        <td><strong>{{ "%.f"|format(mouvement['montant_total']) }} F</strong></td>
+                        <td>
+                            <strong class="{% if mouvement['benefice'] >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                {{ "%.f"|format(mouvement['benefice']) }} F
+                            </strong>
+                        </td>
+                        <td>{{ mouvement['stock_avant'] }}</td>
+                        <td>
+                            <span class="badge {% if mouvement['stock_apres'] < 10 %}bg-danger{% else %}bg-success{% endif %}">
+                                {{ mouvement['stock_apres'] }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-info text-center">
+            <i class="bi bi-info-circle"></i> Aucun mouvement enregistré. 
+            <a href="{{ url_for('vendre') }}" class="alert-link">Enregistrez votre première vente</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% if mouvements %}
+<div class="alert alert-light mt-3">
+    <strong><i class="bi bi-info-circle"></i> Légende:</strong>
+    <ul class="mb-0">
+        <li><strong>Prix Achat:</strong> Coût d'acquisition du produit</li>
+        <li><strong>Prix Vente:</strong> Prix auquel le produit a été vendu</li>
+        <li><strong>Bénéfice:</strong> Différence entre le montant de vente et le coût d'achat (vert = profit, rouge = perte)</li>
+        <li><strong>Stock Avant/Après:</strong> Quantité en stock avant et après la vente</li>
+        <li><strong>Badge rouge:</strong> Stock faible (< 10 unités)</li>
+    </ul>
+</div>
+{% endif %}
+
+{% endblock %}
