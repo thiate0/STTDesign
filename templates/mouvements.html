@@ -18,8 +18,10 @@
     <div class="col-md-3">
         <div class="card stat-card-2">
             <div class="card-body">
-                <h5 class="card-title"><i class="bi bi-cash-coin"></i> Total Ventes</h5>
+                <h5 class="card-title"><i class="bi bi-cash-coin"></i> Total Ventes et Caisse</h5>
                 <h2>{{ "%.f"|format(stats['total_ventes'] or 0) }} FCFA</h2>
+                <small>Montant disponible dans la Caisse.</small>
+
             </div>
         </div>
     </div>

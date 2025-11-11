@@ -69,6 +69,8 @@ def init_db():
             )
         ''')
         
+        
+        
         conn.commit()
         cursor.close()
         conn.close()
@@ -109,13 +111,41 @@ def index():
                          produits_disponibles=produits_disponibles)
 
 # Route pour ajouter un produit
+# @app.route('/ajouter', methods=('GET', 'POST'))
+# def ajouter():
+#     if request.method == 'POST':
+#         nom = request.form['nom']
+#         description = request.form['description']
+#         quantite = request.form['quantite']
+#         prix_achat = request.form['prix_achat']
+#         categorie = request.form['categorie']
+        
+#         if not nom or not quantite or not prix_achat:
+#             flash('Le nom, la quantité et le prix d\'achat sont obligatoires!', 'error')
+#         else:
+#             conn = get_db_connection()
+#             if conn:
+#                 cursor = conn.cursor()
+#                 cursor.execute(
+#                     'INSERT INTO produits (nom, description, quantite, prix_achat, categorie) VALUES (%s, %s, %s, %s, %s)',
+#                     (nom, description, quantite, prix_achat, categorie)
+#                 )
+#                 conn.commit()
+#                 cursor.close()
+#                 conn.close()
+#                 flash('Produit ajouté avec succès!', 'success')
+#                 return redirect(url_for('index'))
+#             else:
+#                 flash('Erreur de connexion à la base de données', 'error')
+    
+#     return render_template('ajouter.html')
 @app.route('/ajouter', methods=('GET', 'POST'))
 def ajouter():
     if request.method == 'POST':
         nom = request.form['nom']
         description = request.form['description']
-        quantite = request.form['quantite']
-        prix_achat = request.form['prix_achat']
+        quantite = int(request.form['quantite'])
+        prix_achat = float(request.form['prix_achat'])
         categorie = request.form['categorie']
         
         if not nom or not quantite or not prix_achat:
@@ -124,14 +154,25 @@ def ajouter():
             conn = get_db_connection()
             if conn:
                 cursor = conn.cursor()
+                # --- 1️⃣ Insérer le produit ---
                 cursor.execute(
                     'INSERT INTO produits (nom, description, quantite, prix_achat, categorie) VALUES (%s, %s, %s, %s, %s)',
                     (nom, description, quantite, prix_achat, categorie)
                 )
+                produit_id = cursor.lastrowid
+
+                # --- 2️⃣ Enregistrer un mouvement de type "ajout" ---
+                montant_total = quantite * prix_achat
+                cursor.execute('''
+                    INSERT INTO mouvements (produit_id, type_mouvement, quantite, prix_achat, prix_vente,
+                                            montant_total, benefice, stock_avant, stock_apres)
+                    VALUES (%s, 'ajout', %s, %s, 0, %s, 0, 0, %s)
+                ''', (produit_id, quantite, prix_achat, montant_total, quantite))
+
                 conn.commit()
                 cursor.close()
                 conn.close()
-                flash('Produit ajouté avec succès!', 'success')
+                flash('✅ Produit ajouté avec succès et mouvement enregistré!', 'success')
                 return redirect(url_for('index'))
             else:
                 flash('Erreur de connexion à la base de données', 'error')
@@ -210,6 +251,36 @@ def rechercher():
     return render_template('rechercher.html', produits=produits, query=query)
 
 # Route pour afficher les mouvements
+# @app.route('/mouvements')
+# def mouvements():
+#     conn = get_db_connection()
+#     if not conn:
+#         flash('Erreur de connexion à la base de données', 'error')
+#         return render_template('mouvements.html', mouvements=[], stats={'total_mouvements': 0, 'total_ventes': 0, 'total_quantite_vendue': 0, 'total_benefices': 0})
+    
+#     cursor = conn.cursor(dictionary=True)
+#     cursor.execute('''
+#         SELECT m.*, p.nom as produit_nom, p.categorie
+#         FROM mouvements m
+#         JOIN produits p ON m.produit_id = p.id
+#         ORDER BY m.date_mouvement DESC
+#     ''')
+#     mouvements = cursor.fetchall()
+    
+#     # Statistiques
+#     cursor.execute('''
+#         SELECT 
+#             COUNT(*) as total_mouvements,
+#             COALESCE(SUM(CASE WHEN type_mouvement = 'vente' THEN montant_total ELSE 0 END), 0) as total_ventes,
+#             COALESCE(SUM(CASE WHEN type_mouvement = 'vente' THEN quantite ELSE 0 END), 0) as total_quantite_vendue,
+#             COALESCE(SUM(CASE WHEN type_mouvement = 'vente' THEN benefice ELSE 0 END), 0) as total_benefices
+#         FROM mouvements
+#     ''')
+#     stats = cursor.fetchone()
+    
+#     cursor.close()
+#     conn.close()
+#     return render_template('mouvements.html', mouvements=mouvements, stats=stats)
 @app.route('/mouvements')
 def mouvements():
     conn = get_db_connection()
@@ -225,18 +296,37 @@ def mouvements():
         ORDER BY m.date_mouvement DESC
     ''')
     mouvements = cursor.fetchall()
-    
-    # Statistiques
+
+    # --- 1️⃣ Total des ventes ---
     cursor.execute('''
         SELECT 
-            COUNT(*) as total_mouvements,
-            COALESCE(SUM(CASE WHEN type_mouvement = 'vente' THEN montant_total ELSE 0 END), 0) as total_ventes,
-            COALESCE(SUM(CASE WHEN type_mouvement = 'vente' THEN quantite ELSE 0 END), 0) as total_quantite_vendue,
-            COALESCE(SUM(CASE WHEN type_mouvement = 'vente' THEN benefice ELSE 0 END), 0) as total_benefices
+            COALESCE(SUM(montant_total), 0) AS total_ventes,
+            COALESCE(SUM(quantite), 0) AS total_quantite_vendue,
+            COALESCE(SUM(benefice), 0) AS total_benefices
         FROM mouvements
+        WHERE type_mouvement = 'vente'
     ''')
-    stats = cursor.fetchone()
-    
+    ventes = cursor.fetchone()
+
+    # --- 2️⃣ Total des achats ---
+    cursor.execute('''
+        SELECT COALESCE(SUM(montant_total), 0) AS total_achats
+        FROM mouvements
+        WHERE type_mouvement = 'ajout'
+    ''')
+    achats = cursor.fetchone()
+
+    # --- 3️⃣ Calcul du total net ---
+    total_ventes_net = (ventes['total_ventes'] or 0) - (achats['total_achats'] or 0)
+
+    # --- 4️⃣ Statistiques globales ---
+    stats = {
+        'total_mouvements': len(mouvements),
+        'total_ventes': total_ventes_net,
+        'total_quantite_vendue': ventes['total_quantite_vendue'] or 0,
+        'total_benefices': ventes['total_benefices'] or 0
+    }
+
     cursor.close()
     conn.close()
     return render_template('mouvements.html', mouvements=mouvements, stats=stats)

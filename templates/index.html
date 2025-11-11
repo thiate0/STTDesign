@@ -21,6 +21,7 @@
             <div class="card-body">
                 <h5 class="card-title"><i class="bi bi-currency-XOF"></i> Valeur Totale</h5>
                 <h2>{{ "%.f"|format(valeur_totale) }} FCFA</h2>
+                <small>Montant depenses</small>
             </div>
         </div>
     </div>
@@ -49,6 +50,12 @@
             </div>
         </form>
     </div>
+</div>
+<!-- Bouton pour enregistrer une vente -->
+<div class="mb-4">
+    <a href="{{ url_for('ajouter') }}" class="btn btn-success btn-lg">
+        <i class="bi bi-plus-circle"></i> Ajouter un Produit
+    </a>
 </div>
 
 <!-- Liste des produits -->
@@ -86,11 +93,11 @@
                             {% endif %}
                         </td>
                         <td>
-                            {% if produit['quantite'] < 10 %}
-                            <span class="badge bg-warning text-dark">{{ produit['quantite'] }}</span>
-                            {% else %}
-                            {{ produit['quantite'] }}
-                            {% endif %}
+                            {% if produit['quantite'] < 10 %} <span class="badge bg-warning text-dark">{{
+                                produit['quantite'] }}</span>
+                                {% else %}
+                                {{ produit['quantite'] }}
+                                {% endif %}
                         </td>
                         <td>{{ "%.f"|format(produit['prix_achat']) }} FCFA</td>
                         <!-- <td>{{ "%.f"|format(produit['quantite'] * produit['prix_achat']) }} FCFA</td> -->
@@ -98,7 +105,9 @@
                             <a href="{{ url_for('modifier', id=produit['id']) }}" class="btn btn-sm btn-warning">
                                 <i class="bi bi-pencil"></i>
                             </a>
-                            <form method="post" action="{{ url_for('supprimer', id=produit['id']) }}" style="display: inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce produit?');">
+                            <form method="post" action="{{ url_for('supprimer', id=produit['id']) }}"
+                                style="display: inline;"
+                                onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce produit?');">
                                 <button type="submit" class="btn btn-sm btn-danger">
                                     <i class="bi bi-trash"></i>
                                 </button>
@@ -111,7 +120,7 @@
         </div>
         {% else %}
         <div class="alert alert-info text-center">
-            <i class="bi bi-info-circle"></i> Aucun produit en stock. 
+            <i class="bi bi-info-circle"></i> Aucun produit en stock.
             <a href="{{ url_for('ajouter') }}" class="alert-link">Ajoutez votre premier produit</a>
         </div>
         {% endif %}
