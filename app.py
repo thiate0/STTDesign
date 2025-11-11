@@ -96,15 +96,17 @@ def index():
     conn.close()
     
     # Calculer les statistiques
-    total_produits = len(produits)
+    types_produits = len(produits)  # Nombre de types de produits différents
+    total_unites = sum([p['quantite'] for p in produits])  # Total des unités en stock
     valeur_totale = sum([p['quantite'] * float(p['prix_achat']) for p in produits])
-    produits_faible_stock = sum([1 for p in produits if p['quantite'] < 10])
+    produits_disponibles = sum([p['quantite'] for p in produits if p['quantite'] > 0])  # Somme des quantités disponibles
     
     return render_template('index.html', 
                          produits=produits,
-                         total_produits=total_produits,
+                         types_produits=types_produits,
+                         total_unites=total_unites,
                          valeur_totale=valeur_totale,
-                         produits_faible_stock=produits_faible_stock)
+                         produits_disponibles=produits_disponibles)
 
 # Route pour ajouter un produit
 @app.route('/ajouter', methods=('GET', 'POST'))
@@ -282,7 +284,7 @@ def vendre():
                         (stock_apres, produit_id))
             
             conn.commit()
-            flash(f'Vente enregistrée! Montant: {montant_total:.2f} FCFA - Bénéfice: {benefice:.2f} FCFA', 'success')
+            flash(f'Vente enregistrée! Montant: {montant_total:.2f} € - Bénéfice: {benefice:.2f} €', 'success')
             cursor.close()
             conn.close()
             return redirect(url_for('mouvements'))
