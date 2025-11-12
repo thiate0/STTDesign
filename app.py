@@ -92,7 +92,7 @@ def index():
         return render_template('index.html', produits=[], total_produits=0, valeur_totale=0, produits_faible_stock=0)
     
     cursor = conn.cursor(dictionary=True)
-    cursor.execute('SELECT * FROM produits ORDER BY nom')
+    cursor.execute('SELECT * FROM produits ORDER BY id asc')
     produits = cursor.fetchall()
     cursor.close()
     conn.close()
@@ -374,7 +374,7 @@ def vendre():
                         (stock_apres, produit_id))
             
             conn.commit()
-            flash(f'Vente enregistrée! Montant: {montant_total:.2f} € - Bénéfice: {benefice:.2f} €', 'success')
+            flash(f'Vente enregistrée! Montant: {montant_total:} FCFA - Bénéfice: {benefice:} FCFA', 'success')
             cursor.close()
             conn.close()
             return redirect(url_for('mouvements'))
