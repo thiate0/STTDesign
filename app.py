@@ -318,6 +318,7 @@ def mouvements():
 
     # --- 3️⃣ Calcul du total net ---
     total_ventes_net = (ventes['total_ventes'] or 0) - (achats['total_achats'] or 0)
+    
 
     # --- 4️⃣ Statistiques globales ---
     stats = {
@@ -390,3 +391,9 @@ def vendre():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, host='0.0.0.0', port=5000)
+
+
+
+
+
+
