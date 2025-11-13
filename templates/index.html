@@ -36,27 +36,39 @@
     </div>
 </div>
 
-<!-- Barre de recherche -->
-<div class="card mb-4">
-    <div class="card-body">
-        <form action="{{ url_for('rechercher') }}" method="get" class="row g-3">
-            <div class="col-md-10">
-                <input type="text" name="q" class="form-control" placeholder="Rechercher un produit..." required>
-            </div>
-            <div class="col-md-2">
-                <button type="submit" class="btn btn-primary w-100">
-                    <i class="bi bi-search"></i> Rechercher
-                </button>
-            </div>
-        </form>
+
+<div class="card mb-4 shadow-sm">
+    <div class="card-body text-center">
+        <img src="{{ url_for('static', filename='images/logo2.png') }}" alt="Logo Horizontal STTDesign"
+            class="img-fluid rounded-3" style="max-height: 100%; width: auto;">
     </div>
 </div>
-<!-- Bouton pour enregistrer une vente -->
-<div class="mb-4">
-    <a href="{{ url_for('ajouter') }}" class="btn btn-success btn-lg">
-        <i class="bi bi-plus-circle"></i> Ajouter un Produit
-    </a>
+
+
+<!-- Barre de recherche avec bouton Ajouter Produit aligné -->
+<div class="card mb-4 p-3 shadow-sm">
+    <div class="row align-items-center">
+        <!-- Bouton pour enregistrer une vente -->
+        <div class="col-md-4 ">
+            <a href="{{ url_for('ajouter') }}" class="btn btn-success btn-lg">
+                <i class="bi bi-plus-circle"></i> Ajouter un Produit
+            </a>
+        </div>
+        <!-- Formulaire de recherche -->
+        <div class="col-md-8 text-end">
+            <form action="{{ url_for('rechercher') }}" method="get" class="d-flex g-2 align-items-center">
+                <input type="text" name="q" class="form-control form-control-sm me-2"
+                    placeholder="Rechercher un produit..." required>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-search"></i> Rechercher
+                </button>
+            </form>
+        </div>
+
+
+    </div>
 </div>
+
 
 <!-- Liste des produits -->
 <div class="card">
