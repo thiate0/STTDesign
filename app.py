@@ -38,6 +38,7 @@ def init_db():
         cursor.execute(f"CREATE DATABASE IF NOT EXISTS {MYSQL_DATABASE} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci")
         cursor.execute(f"USE {MYSQL_DATABASE}")
         
+        
         # Créer la table produits
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS produits (
@@ -50,7 +51,16 @@ def init_db():
                 date_ajout TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
-        
+        # Creer la Table personnalisations
+        cursor.execute('''
+                            CREATE TABLE personnalisations (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            dimension_cm VARCHAR(50) NOT NULL,
+            couleur VARCHAR(50) NOT NULL,
+            prix_flocage DECIMAL(10,2) NOT NULL,
+            date_ajout DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+          ''')
         # Créer la table mouvements
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS mouvements (
@@ -84,7 +94,7 @@ def init_db():
         print("3. L'utilisateur MySQL a les droits nécessaires")
 
 # Route principale - Liste des produits
-@app.route('/')
+@app.route('/') 
 def index():
     conn = get_db_connection()
     if not conn:
@@ -161,32 +171,66 @@ def modifier(id):
         return redirect(url_for('index'))
     
     cursor = conn.cursor(dictionary=True)
+    # Récupérer le produit existant
     cursor.execute('SELECT * FROM produits WHERE id = %s', (id,))
     produit = cursor.fetchone()
+    
+    if not produit:
+        flash('Produit introuvable.', 'error')
+        cursor.close()
+        conn.close()
+        return redirect(url_for('index'))
     
     if request.method == 'POST':
         nom = request.form['nom']
         description = request.form['description']
-        quantite = request.form['quantite']
-        prix_achat = request.form['prix_achat']
+        quantite_new = int(request.form['quantite'])
+        prix_achat = float(request.form['prix_achat'])
         categorie = request.form['categorie']
         
-        if not nom or not quantite or not prix_achat:
+        if not nom or quantite_new is None or prix_achat is None:
             flash('Le nom, la quantité et le prix d\'achat sont obligatoires!', 'error')
         else:
+            # Calcul de la différence de quantité
+            quantite_old = produit['quantite']
+            difference = quantite_new - quantite_old
+
+            # Mettre à jour les informations du produit
             cursor.execute(
                 'UPDATE produits SET nom = %s, description = %s, quantite = %s, prix_achat = %s, categorie = %s WHERE id = %s',
-                (nom, description, quantite, prix_achat, categorie, id)
+                (nom, description, quantite_new, prix_achat, categorie, id)
             )
+
+            # Enregistrer un mouvement si la quantité a changé
+            if difference != 0:
+                type_mvt = 'ajout' if difference > 0 else 'vente'
+                quantite_mvt = abs(difference)
+                montant_total = quantite_mvt * prix_achat
+                benefice = 0.0 if type_mvt == 'ajout' else montant_total  # si vente, on peut ajuster plus tard
+                stock_avant = quantite_old
+                stock_apres = quantite_new
+                
+                cursor.execute('''
+                    INSERT INTO mouvements (
+                        produit_id, type_mouvement, quantite, prix_achat, prix_vente,
+                        montant_total, benefice, stock_avant, stock_apres
+                    )
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ''', (
+                    id, type_mvt, quantite_mvt, prix_achat, 0 if type_mvt == 'ajout' else prix_achat,
+                    montant_total, benefice, stock_avant, stock_apres
+                ))
+
             conn.commit()
             cursor.close()
             conn.close()
-            flash('Produit modifié avec succès!', 'success')
+            flash('Produit modifié avec succès et mouvement enregistré !', 'success')
             return redirect(url_for('index'))
     
     cursor.close()
     conn.close()
     return render_template('modifier.html', produit=produit)
+
 
 # Route pour supprimer un produit
 @app.route('/supprimer/<int:id>', methods=('POST',))
@@ -331,6 +375,91 @@ def vendre():
     cursor.close()
     conn.close()
     return render_template('vendre.html', produits=produits)
+
+# Fonction personnalisations
+@app.route('/personnalisations', methods=['GET', 'POST'])
+def personnalisations():
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    if request.method == 'POST':
+        dimension = request.form['dimension']
+        couleur = request.form['couleur']
+        prix = request.form['prix']
+
+        cursor.execute('''
+            INSERT INTO personnalisations (dimension_cm, couleur, prix_flocage)
+            VALUES (%s, %s, %s)
+        ''', (dimension, couleur, prix))
+        conn.commit()
+        flash('Flocage ajouté avec succès !', 'success')
+
+    # Récupérer toutes les personnalisations
+    cursor.execute('SELECT * FROM personnalisations ORDER BY id DESC')
+    personnalisations = cursor.fetchall()
+
+    # Statistiques des flocages
+    cursor.execute('''
+        SELECT 
+            COUNT(*) AS total_flocages,
+            COALESCE(SUM(prix_flocage), 0) AS valeur_totale
+        FROM personnalisations
+    ''')
+    stats = cursor.fetchone()
+
+    cursor.close()
+    conn.close()
+
+    return render_template('personnalisations.html', personnalisations=personnalisations, stats=stats)
+# Modifier une personnalisation
+@app.route('/modifier_personnalisation/<int:id>', methods=['GET', 'POST'])
+def modifier_personnalisation(id):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    # Récupérer la personnalisation existante
+    cursor.execute('SELECT * FROM personnalisations WHERE id = %s', (id,))
+    personnalisation = cursor.fetchone()
+
+    if not personnalisation:
+        flash('Personnalisation introuvable.', 'error')
+        return redirect(url_for('personnalisations'))
+
+    if request.method == 'POST':
+        dimension = request.form['dimension']
+        couleur = request.form['couleur']
+        prix = request.form['prix']
+
+        cursor.execute('''
+            UPDATE personnalisations
+            SET dimension_cm = %s, couleur = %s, prix_flocage = %s
+            WHERE id = %s
+        ''', (dimension, couleur, prix, id))
+        conn.commit()
+        cursor.close()
+        conn.close()
+        flash('✅ Personnalisation modifiée avec succès !', 'success')
+        return redirect(url_for('personnalisations'))
+
+    cursor.close()
+    conn.close()
+    return render_template('modifier_personnalisation.html', personnalisation=personnalisation)
+
+
+# Supprimer une personnalisation
+@app.route('/supprimer_personnalisation/<int:id>', methods=['POST'])
+def supprimer_personnalisation(id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute('DELETE FROM personnalisations WHERE id = %s', (id,))
+    conn.commit()
+
+    cursor.close()
+    conn.close()
+    flash('🗑️ Personnalisation supprimée avec succès.', 'success')
+    return redirect(url_for('personnalisations'))
+
 
 if __name__ == '__main__':
     init_db()

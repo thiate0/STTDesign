@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow-sm p-4">
+        <h4 class="mb-4 text-primary">Modifier une personnalisation</h4>
+        <form method="POST">
+            <div class="mb-3">
+                <label class="form-label">Dimension (cm)</label>
+                <input type="text" class="form-control" name="dimension" value="{{ personnalisation.dimension_cm }}" required>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Couleur</label>
+                <input type="text" class="form-control" name="couleur" value="{{ personnalisation.couleur }}" required>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Prix (FCFA)</label>
+                <input type="number" step="0.01" class="form-control" name="prix" value="{{ personnalisation.prix_flocage }}" required>
+            </div>
+
+            <div class="d-flex justify-content-between">
+                <a href="{{ url_for('personnalisations') }}" class="btn btn-secondary">Annuler</a>
+                <button type="submit" class="btn btn-success">Enregistrer les modifications</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

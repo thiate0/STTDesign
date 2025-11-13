@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+
+{% block title %}Personnalisation - Gestion de Stock{% endblock %}
+
+{% block content %}
+<h1 class="mb-4"><i class="bi bi-brush"></i> Gestion des Flocages</h1>
+
+<!-- Statistiques -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card stat-card">
+            <div class="card-body text-center">
+                <h5 class="card-title"><i class="bi bi-layers"></i> Total Flocages</h5>
+                <h2>{{ stats['total_flocages'] }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card stat-card-2">
+            <div class="card-body text-center">
+                <h5 class="card-title"><i class="bi bi-currency-xof"></i> Valeur Totale des Flocages</h5>
+                <h2>{{ "%.f"|format(stats['valeur_totale']) }} FCFA</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Formulaire d’ajout -->
+<div class="card mb-4 shadow-sm">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0"><i class="bi bi-plus-circle"></i> Ajouter un Flocage</h5>
+    </div>
+    <div class="card-body">
+        <form action="{{ url_for('personnalisations') }}" method="POST" class="row g-3">
+            <div class="col-md-4">
+                <label for="dimension" class="form-label">Dimension (cm)</label>
+                <input type="text" name="dimension" id="dimension" class="form-control" required>
+            </div>
+            <div class="col-md-4">
+                <label for="couleur" class="form-label">Couleur</label>
+                <input type="text" name="couleur" id="couleur" class="form-control" required>
+            </div>
+            <div class="col-md-4">
+                <label for="prix" class="form-label">Prix (FCFA)</label>
+                <input type="number" name="prix" id="prix" class="form-control" min="0" required>
+            </div>
+            <div class="col-md-12 text-end">
+                <button type="submit" class="btn btn-success">
+                    <i class="bi bi-save"></i> Enregistrer
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Tableau des flocages -->
+<div class="card shadow-sm">
+    <div class="card-header bg-secondary text-white">
+        <h5 class="mb-0"><i class="bi bi-table"></i> Liste des Flocages</h5>
+    </div>
+    <div class="card-body">
+        {% if personnalisations %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Dimension (cm)</th>
+                        <th>Couleur</th>
+                        <th>Prix (FCFA)</th>
+                        <th>Date d’ajout</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in personnalisations %}
+                    <tr>
+                        <td>{{ p.id }}</td>
+                        <td>{{ p.dimension_cm }}</td>
+                        <td>{{ p.couleur }}</td>
+                        <td>{{ "%.f"|format(p.prix_flocage) }}</td>
+                        <td>{{ p.date_ajout.strftime('%Y-%m-%d %H:%M') if p.date_ajout else '-' }}</td>
+                        <td>
+                            <a href="{{ url_for('modifier_personnalisation', id=p.id) }}"
+                                class="btn btn-warning btn-sm">
+                                <i class="bi bi-pencil-square"></i> Modifier
+                            </a>
+
+                            <form action="{{ url_for('supprimer_personnalisation', id=p.id) }}" method="POST"
+                                class="d-inline"
+                                onsubmit="return confirm('Voulez-vous vraiment supprimer cette personnalisation ?');">
+                                <button type="submit" class="btn btn-danger btn-sm">
+                                    <i class="bi bi-trash"></i> Supprimer
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+
+            <!-- Script SweetAlert pour confirmation -->
+            <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+            <script>
+                function confirmerSuppression(id) {
+                    Swal.fire({
+                        title: 'Supprimer cette personnalisation ?',
+                        text: "Cette action est irréversible.",
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#d33',
+                        cancelButtonColor: '#6c757d',
+                        confirmButtonText: 'Oui, supprimer',
+                        cancelButtonText: 'Annuler'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            window.location.href = `/supprimer_personnalisation/${id}`;
+                        }
+                    });
+                }
+            </script>
+
+        </div>
+        {% else %}
+        <div class="alert alert-info text-center">
+            <i class="bi bi-info-circle"></i> Aucun flocage ajouté pour le moment.
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
