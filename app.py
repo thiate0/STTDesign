@@ -1,8 +1,10 @@
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash,session
 import mysql.connector
 from mysql.connector import Error
 from datetime import datetime
 from config import MYSQL_HOST, MYSQL_USER, MYSQL_PASSWORD, MYSQL_DATABASE, MYSQL_PORT
+from auth import login_required, hash_password, verify_password
+
 
 app = Flask(__name__)
 app.secret_key = 'votre_cle_secrete_ici'
@@ -92,9 +94,66 @@ def init_db():
         print("1. MySQL est installé et démarré")
         print("2. Les paramètres dans config.py sont corrects")
         print("3. L'utilisateur MySQL a les droits nécessaires")
+        
+# ==========================================
+# ROUTES D'AUTHENTIFICATION
+# ==========================================
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    """Page de connexion"""
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        
+        conn = get_db_connection()
+        if not conn:
+            flash('Erreur de connexion à la base de données', 'error')
+            return render_template('login.html')
+        
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute('SELECT * FROM utilisateurs WHERE username = %s AND actif = TRUE', (username,))
+        user = cursor.fetchone()
+        
+        if user and verify_password(user['password_hash'], password):
+            # Connexion réussie
+            session['user_id'] = user['id']
+            session['username'] = user['username']
+            session['nom_complet'] = user['nom_complet']
+            session['role'] = user['role']
+            
+            # Mettre à jour la dernière connexion
+            cursor.execute('UPDATE utilisateurs SET derniere_connexion = NOW() WHERE id = %s', (user['id'],))
+            conn.commit()
+            
+            cursor.close()
+            conn.close()
+            
+            # flash(f'Bienvenue {user['nom_complet']} !', 'success')
+            flash(f"Bienvenue {user['nom_complet']} !", 'success')
+            return redirect(url_for('index'))
+        else:
+            cursor.close()
+            conn.close()
+            flash('Nom d\'utilisateur ou mot de passe incorrect', 'error')
+    
+    return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    """Déconnexion"""
+    username = session.get('username', 'Utilisateur')
+    session.clear()
+    flash(f'Au revoir {username} !', 'success')
+    return redirect(url_for('login'))
+
+# ==========================================
+# ROUTES PRINCIPALES (PROTÉGÉES)
+# ==========================================
 
 # Route principale - Liste des produits
 @app.route('/') 
+@login_required
 def index():
     conn = get_db_connection()
     if not conn:
@@ -123,6 +182,7 @@ def index():
 # Route pour ajouter un produit
 
 @app.route('/ajouter', methods=('GET', 'POST'))
+@login_required
 def ajouter():
     if request.method == 'POST':
         nom = request.form['nom']
@@ -164,6 +224,7 @@ def ajouter():
 
 # Route pour modifier un produit
 @app.route('/modifier/<int:id>', methods=('GET', 'POST'))
+@login_required
 def modifier(id):
     conn = get_db_connection()
     if not conn:
@@ -234,6 +295,7 @@ def modifier(id):
 
 # Route pour supprimer un produit
 @app.route('/supprimer/<int:id>', methods=('POST',))
+@login_required
 def supprimer(id):
     conn = get_db_connection()
     if conn:
@@ -249,6 +311,7 @@ def supprimer(id):
 
 # Route pour rechercher des produits
 @app.route('/rechercher')
+@login_required
 def rechercher():
     query = request.args.get('q', '')
     conn = get_db_connection()
@@ -270,6 +333,7 @@ def rechercher():
 # Route pour afficher les mouvements
 
 @app.route('/mouvements')
+@login_required
 def mouvements():
     conn = get_db_connection()
     if not conn:
@@ -322,6 +386,7 @@ def mouvements():
 
 # Route pour enregistrer une vente
 @app.route('/vendre', methods=('GET', 'POST'))
+@login_required
 def vendre():
     conn = get_db_connection()
     if not conn:
@@ -378,6 +443,7 @@ def vendre():
 
 # Fonction personnalisations
 @app.route('/personnalisations', methods=['GET', 'POST'])
+@login_required
 def personnalisations():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
@@ -413,6 +479,7 @@ def personnalisations():
     return render_template('personnalisations.html', personnalisations=personnalisations, stats=stats)
 # Modifier une personnalisation
 @app.route('/modifier_personnalisation/<int:id>', methods=['GET', 'POST'])
+@login_required
 def modifier_personnalisation(id):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
@@ -448,6 +515,7 @@ def modifier_personnalisation(id):
 
 # Supprimer une personnalisation
 @app.route('/supprimer_personnalisation/<int:id>', methods=['POST'])
+@login_required
 def supprimer_personnalisation(id):
     conn = get_db_connection()
     cursor = conn.cursor()
