@@ -5,17 +5,17 @@
 {% block content %}
 <div class="row justify-content-center mt-5">
     <div class="col-md-5">
-        <div class="card shadow">
+        <div class="card shadow" style="background-color: #039e9c;">
             <div class="card-body p-5">
                 <div class="text-center mb-4">
-                    <i class="bi bi-shield-lock" style="font-size: 4rem; color: #039e9c;"></i>
-                    <h2 class="mt-3">Connexion</h2>
-                    <p class="text-muted">STT_Design - Gestion de Stock</p>
+                    <i class="bi bi-shield-lock icon-lock" style="font-size: 4rem; color: #f9faff;"></i>
+                    <h2 class="mt-3 text-white">Connexion</h2>
+                    <h6 class=" text-white">STT_Design - Gestion de Stock</h6>
                 </div>
 
                 <form method="POST">
                     <div class="mb-3">
-                        <label for="username" class="form-label">
+                        <label for="username" class="form-label text-white">
                             <i class="bi bi-person"></i> Nom d'utilisateur
                         </label>
                         <input type="text" 
@@ -28,7 +28,7 @@
                     </div>
 
                     <div class="mb-3">
-                        <label for="password" class="form-label">
+                        <label for="password" class="form-label text-white">
                             <i class="bi bi-lock"></i> Mot de passe
                         </label>
                         <input type="password" 
@@ -41,12 +41,12 @@
 
                     <div class="mb-3 form-check">
                         <input type="checkbox" class="form-check-input" id="remember" name="remember">
-                        <label class="form-check-label" for="remember">
+                        <label class="form-check-label text-white" for="remember">
                             Se souvenir de moi
                         </label>
                     </div>
 
-                    <button type="submit" class="btn btn-primary w-100">
+                    <button type="submit" class="btn btn-primary w-100" style="color: #039e9c;">
                         <i class="bi bi-box-arrow-in-right"></i> Se connecter
                     </button>
                 </form>
@@ -54,7 +54,7 @@
                 <hr class="my-4">
 
                 <div class="text-center">
-                    <p class="text-muted mb-0">
+                    <p class="mb-0" style="color: rgba(255, 255, 255, 0.9);">
                         <small>
                             <i class="bi bi-info-circle"></i> 
                             Pour créer un compte, contactez l'administrateur
@@ -63,14 +63,13 @@
                 </div>
             </div>
         </div>
-
        
     </div>
 </div>
 
 <style>
     body {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #65e0ff 0%, #ffffff 100%);
         min-height: 100vh;
     }
 
@@ -80,14 +79,14 @@
     }
 
     .btn-primary {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #f0f5f5 0%, #f4f6f6 100%);
         border: none;
         padding: 12px;
         font-weight: bold;
     }
 
     .btn-primary:hover {
-        background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+        background: linear-gradient(135deg, #07a0bb 0%, #66eaea 100%);
         transform: translateY(-2px);
         box-shadow: 0 5px 15px rgba(0,0,0,0.2);
     }
