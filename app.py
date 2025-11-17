@@ -168,9 +168,11 @@ def index():
     
     # Calculer les statistiques
     types_produits = len(produits)  # Nombre de types de produits différents
-    total_unites = sum([p['quantite'] for p in produits])  # Total des unités en stock
+    # total_unites = sum([p['quantite'] for p in produits])  # Total des unités en stock
+    total_unites = len(produits)  # = 4 produits
     valeur_totale = sum([p['quantite'] * float(p['prix_achat']) for p in produits])
-    produits_disponibles = sum([p['quantite'] for p in produits if p['quantite'] > 0])  # Somme des quantités disponibles
+    # produits_disponibles = sum([p['quantite'] for p in produits if p['quantite'] > 0])  # Somme des quantités disponibles
+    produits_disponibles = sum([p['quantite'] for p in produits])  # = 35 unités
     
     return render_template('index.html', 
                          produits=produits,
