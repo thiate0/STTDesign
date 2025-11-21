@@ -224,6 +224,7 @@ def ajouter():
     
     return render_template('ajouter.html')
 
+
 # Route pour modifier un produit
 @app.route('/modifier/<int:id>', methods=('GET', 'POST'))
 @login_required
@@ -234,7 +235,6 @@ def modifier(id):
         return redirect(url_for('index'))
     
     cursor = conn.cursor(dictionary=True)
-    # Récupérer le produit existant
     cursor.execute('SELECT * FROM produits WHERE id = %s', (id,))
     produit = cursor.fetchone()
     
@@ -248,28 +248,60 @@ def modifier(id):
         nom = request.form['nom']
         description = request.form['description']
         quantite_new = int(request.form['quantite'])
-        prix_achat = float(request.form['prix_achat'])
+        prix_achat_new = float(request.form['prix_achat'])
         categorie = request.form['categorie']
         
-        if not nom or quantite_new is None or prix_achat is None:
+        if not nom or quantite_new is None or prix_achat_new is None:
             flash('Le nom, la quantité et le prix d\'achat sont obligatoires!', 'error')
         else:
-            # Calcul de la différence de quantité
+            # Récupérer les anciennes valeurs
             quantite_old = produit['quantite']
-            difference = quantite_new - quantite_old
+            prix_achat_old = float(produit['prix_achat'])
+            difference_quantite = quantite_new - quantite_old
+            prix_a_change = (prix_achat_new != prix_achat_old)
 
-            # Mettre à jour les informations du produit
+            # --- 1️⃣ Mettre à jour les informations du produit ---
             cursor.execute(
                 'UPDATE produits SET nom = %s, description = %s, quantite = %s, prix_achat = %s, categorie = %s WHERE id = %s',
-                (nom, description, quantite_new, prix_achat, categorie, id)
+                (nom, description, quantite_new, prix_achat_new, categorie, id)
             )
 
-            # Enregistrer un mouvement si la quantité a changé
-            if difference != 0:
-                type_mvt = 'ajout' if difference > 0 else 'vente'
-                quantite_mvt = abs(difference)
-                montant_total = quantite_mvt * prix_achat
-                benefice = 0.0 if type_mvt == 'ajout' else montant_total  # si vente, on peut ajuster plus tard
+            # --- 2️⃣ Si le prix d'achat a changé, recalculer TOUS les mouvements passés ---
+            if prix_a_change:
+                # Récupérer tous les mouvements de ce produit
+                cursor.execute('SELECT * FROM mouvements WHERE produit_id = %s', (id,))
+                mouvements_produit = cursor.fetchall()
+                
+                # Recalculer chaque mouvement avec le nouveau prix
+                for mvt in mouvements_produit:
+                    quantite_mvt = mvt['quantite']
+                    prix_vente = float(mvt['prix_vente'])
+                    type_mvt = mvt['type_mouvement']
+                    
+                    # Recalculer selon le type
+                    if type_mvt == 'ajout':
+                        montant_total_new = quantite_mvt * prix_achat_new
+                        benefice_new = 0
+                    else:  # vente
+                        montant_total_new = quantite_mvt * prix_vente
+                        cout_achat = quantite_mvt * prix_achat_new
+                        benefice_new = montant_total_new - cout_achat
+                    
+                    # Mettre à jour le mouvement
+                    cursor.execute('''
+                        UPDATE mouvements 
+                        SET prix_achat = %s, montant_total = %s, benefice = %s
+                        WHERE id = %s
+                    ''', (prix_achat_new, montant_total_new, benefice_new, mvt['id']))
+                
+                flash(f'✅ Prix modifié ! {len(mouvements_produit)} mouvement(s) recalculé(s).', 'info')
+
+            # --- 3️⃣ Enregistrer un nouveau mouvement si la quantité a changé ---
+            if difference_quantite != 0:
+                type_mvt = 'ajout' if difference_quantite > 0 else 'vente'
+                quantite_mvt = abs(difference_quantite)
+                montant_total = quantite_mvt * prix_achat_new
+                benefice = 0.0 if type_mvt == 'ajout' else montant_total
                 stock_avant = quantite_old
                 stock_apres = quantite_new
                 
@@ -280,20 +312,19 @@ def modifier(id):
                     )
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                 ''', (
-                    id, type_mvt, quantite_mvt, prix_achat, 0 if type_mvt == 'ajout' else prix_achat,
+                    id, type_mvt, quantite_mvt, prix_achat_new, 0 if type_mvt == 'ajout' else prix_achat_new,
                     montant_total, benefice, stock_avant, stock_apres
                 ))
 
             conn.commit()
             cursor.close()
             conn.close()
-            flash('Produit modifié avec succès et mouvement enregistré !', 'success')
+            flash('✅ Produit modifié avec succès et mouvements mis à jour !', 'success')
             return redirect(url_for('index'))
     
     cursor.close()
     conn.close()
     return render_template('modifier.html', produit=produit)
-
 
 # Route pour supprimer un produit
 @app.route('/supprimer/<int:id>', methods=('POST',))
